@@ -1,7 +1,9 @@
 package com.example.picker;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.PagerSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
@@ -9,12 +11,14 @@ import androidx.recyclerview.widget.SnapHelper;
 
 import android.Manifest;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -25,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     CustomAdapter customAdapter;
     ArrayList<String> galleryImageUrls;
     SnapHelper snapHelper = new PagerSnapHelper();
+    //store the ids of images,
+    ArrayList<Integer> ids;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,6 +39,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         snapHelper.attachToRecyclerView(recyclerView);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(recyclerView);
         //check permsions
         CheckPermsions();
     }
@@ -90,14 +98,42 @@ public class MainActivity extends AppCompatActivity {
         Cursor imagecursor = resolver.query(imageUri,columns,null,null,orderBy+ " DESC");
 
         galleryImageUrls = new ArrayList<>();
+        ids = new ArrayList<>();
         if(imagecursor.getCount()>0){
             while(imagecursor.moveToNext()){
                 int dataColumnIndex = imagecursor.getColumnIndex(MediaStore.Images.Media.DATA);//get column index
                 galleryImageUrls.add(imagecursor.getString(dataColumnIndex));//get Image from column index
+                ids.add(imagecursor.getInt(imagecursor.getColumnIndex(MediaStore.Images.Media._ID)));
                 customAdapter=new CustomAdapter(galleryImageUrls);
                 recyclerView.setAdapter(customAdapter);
             }
         }
 
+    }
+    ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0,ItemTouchHelper.UP) {
+        @Override
+        public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            int position = viewHolder.getAdapterPosition();
+            switch (direction){
+                case ItemTouchHelper.UP:
+                    deleteImage(position);
+                    ids.remove(position);
+                    galleryImageUrls.remove(position);
+                    customAdapter.notifyItemRemoved(position);
+            }
+
+        }
+    };
+
+    private void deleteImage(int i){
+        long mediaId = ids.get(i);
+        Uri contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        Uri itemUri = ContentUris.withAppendedId(contentUri, mediaId);
+        int rows = getContentResolver().delete(itemUri, null, null);
     }
 }
