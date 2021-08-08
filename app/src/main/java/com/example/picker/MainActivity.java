@@ -24,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     CustomAdapter customAdapter;
     ArrayList<String> galleryImageUrls;
+    SnapHelper snapHelper = new PagerSnapHelper();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        snapHelper.attachToRecyclerView(recyclerView);
         //check permsions
         CheckPermsions();
     }
