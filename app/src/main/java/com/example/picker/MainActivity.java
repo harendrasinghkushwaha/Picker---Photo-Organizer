@@ -8,14 +8,22 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SnapHelper;
 
 import android.Manifest;
+import android.content.ContentResolver;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
+    CustomAdapter customAdapter;
+    ArrayList<String> galleryImageUrls;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,8 +45,9 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
         }
-        Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT)
-                .show();
+//        Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT)
+//                .show();
+        display();
 
     }
 
@@ -54,8 +63,9 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_ASK_PERMISSIONS:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT)
-                            .show();
+//                    Toast.makeText(this, "Permission Granted", Toast.LENGTH_SHORT)
+//                            .show();
+                    display();
                 } else {
                     // Permission Denied
                     Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT)
@@ -65,5 +75,27 @@ public class MainActivity extends AppCompatActivity {
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
+    }
+
+    private void display() {
+        ContentResolver resolver =getContentResolver();
+        Uri imageUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+        final String[] columns = {MediaStore.Images.Media.DATA, MediaStore.Images.Media._ID};//projection:-Which columns to return, get all columns of type images
+        final String orderBy = MediaStore.Images.Media.DATE_TAKEN;//order data by date
+
+
+
+        Cursor imagecursor = resolver.query(imageUri,columns,null,null,orderBy+ " DESC");
+
+        galleryImageUrls = new ArrayList<>();
+        if(imagecursor.getCount()>0){
+            while(imagecursor.moveToNext()){
+                int dataColumnIndex = imagecursor.getColumnIndex(MediaStore.Images.Media.DATA);//get column index
+                galleryImageUrls.add(imagecursor.getString(dataColumnIndex));//get Image from column index
+                customAdapter=new CustomAdapter(galleryImageUrls);
+                recyclerView.setAdapter(customAdapter);
+            }
+        }
+
     }
 }
